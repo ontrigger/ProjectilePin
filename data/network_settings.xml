@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<tweak name="settings/network" extension="network_settings">
+	<search>
+		<network/>
+		<rpc/>
+	</search>
+	<target mode="attach" multiple="true">
+		<message name="sync_start_body_pin" delivery="ordered" receiver="unit">
+			<param type="unit" /> <!-- Hit unit -->
+			<param type="body" /> <!-- Impact body -->
+			<param type="vector3" /> <!-- Push at pos -->
+			<param type="vector3" /> <!-- Pin ray (pin_pos - hit_pos):normalized() -->
+		</message>
+	</target>
+</tweak>

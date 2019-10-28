@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<physic_effects>
+	<push name="push" at="param1" mass="param2"/>
+	<damp name="pos_damp" position="param1" time="0" max_acceleration="400000000" share="0.05"/>
+	<accelerate name="to" acceleration="(param1 - target) * param2" share="0.05"/>
+	<rot_accelerate name="rot_acc" acceleration="3333"/>
+	
+	<effect>
+		<body action="pos_damp"/>
+		<body action="to"/>
+	</effect>
+</physic_effects>
