@@ -5,7 +5,7 @@ local mrot1 = Rotation()
 local PROJECTILES_ArrowBase_update = ArrowBase.update
 
 function ArrowBase:update(unit, t, dt)
-	if self._pin_data and self._col_ray and alive(self._col_ray.unit) and not self._already_attached then
+	if self._pin_data and alive(self._pin_data.body) and not self._already_attached then
 		if mvector3.distance(self._pin_data.body:position(), self._pin_data.ray.position) < 150 then
 			self:_attach_to_pin_wall()
 		end
@@ -57,8 +57,7 @@ function ArrowBase:_on_collision(col_ray)
 				return
 			end
 
-			pin_ray.velocity = self._unit:velocity()
-			self._col_ray = pin_ray
+			pin_ray.velocity = self._unit:rotation():y()
 
 			managers.projectile:force_ragdoll(hit_unit)
 
@@ -82,6 +81,7 @@ function ArrowBase:_on_collision(col_ray)
 
 			local pin_data = {
 				attached_unit = pin_ray.unit,
+				attached_body = pin_ray.body,
 				hit_unit = hit_unit,
 				arrow_unit = self._unit,
 				body = impact_body,
@@ -157,56 +157,31 @@ function ArrowBase:_cbk_attached_body_disabled(unit, body)
 
 		return
 	end
-	log("got callback")
+
 	if self._attached_body_disabled_cbk_data.body ~= body then
 		return
 	end
 
 	if not body:enabled() then
 		local all_pin_data = managers.projectile:all_pin_data_for_attached(unit:key())
-		for _, data in pairs(all_pin_data) do
-			log(tostring(data.arrow_unit:key()))
+		for key, data in pairs(all_pin_data) do
 			self:_unfreeze_pin_unit(data)
+			if alive(data.body) then
+				self:_reattach_arrow_to_body(data)
+			end
+			managers.projectile:remove_pin_data(key)
 		end
 		self:_remove_attached_body_disabled_cbk()
 
-		log("dynamic pickup?", tostring(self._is_dynamic_pickup))
 		if not self._is_dynamic_pickup then
 			self:_switch_to_pickup(true)
 		end
 	end
 end
 
-function ArrowBase:_switch_to_pickup(dynamic)
-	log("ArrowBase:_switch_to_pickup dynamic", tostring(dynamic), tostring(debug.getinfo(2).name))
-
-	self._is_pickup = true
-	self._is_pickup_dynamic = dynamic
-
-	self:_remove_switch_to_pickup_clbk()
-
-	if dynamic then
-		self._unit:unlink()
-	end
-
-	self._unit:set_slot(20)
-	self._unit:set_enabled(true)
-	self:_set_body_enabled(dynamic)
-end
-
-function ArrowBase:_set_body_enabled(enabled)
-	self._unit:body("dynamic_body"):set_enabled(enabled)
-
-	if enabled then
-		log("WTFFFFF", tostring(self._unit:key()))
-		self._unit:body("dynamic_body"):set_dynamic()
-	else
-		self._unit:body("dynamic_body"):set_keyframed()
-	end
-end
-
 function ArrowBase:_unfreeze_pin_unit(pin_data)
-	if pin_data and pin_data.freeze_listener_id and alive(self._col_ray.unit) then
+	print_table(pin_data)
+	if pin_data and pin_data.freeze_listener_id and alive(pin_data.hit_unit) then
 		pin_data.hit_unit:character_damage():remove_listener(pin_data.freeze_listener_id)
 
 		managers.projectile:unfreeze_pinned_ragdoll(pin_data.hit_unit:key())
@@ -217,7 +192,7 @@ end
 
 function ArrowBase:_attach_to_pin_wall()
 	local static_unit = self._pin_data.attached_unit
-	
+
 	mrotation.set_look_at(mrot1, self._col_ray.velocity, math.UP)
 	self._unit:set_position(self._pin_data.ray.position)
 	self._unit:set_position(self._pin_data.ray.position)
@@ -229,6 +204,17 @@ end
 
 function ArrowBase:sync_ragdoll_pin()
 
+end
+
+function ArrowBase:_reattach_arrow_to_body(pin_data)
+	mrotation.set_look_at(mrot1, pin_data.ray.velocity, math.UP)
+
+	self._unit:set_position(pin_data.ray.position)
+	self._unit:set_position(pin_data.ray.position)
+	self._unit:set_rotation(mrot1)
+
+	pin_data.hit_unit:link(pin_data.body:root_object():name(), self._unit)
+	self._already_attached = true
 end
 
 function ArrowBase:_attach_to_hit_unit(is_remote, dynamic_pickup_wanted)
@@ -267,6 +253,7 @@ function ArrowBase:_attach_to_hit_unit(is_remote, dynamic_pickup_wanted)
 
 			if parent_obj then
 				if not child_obj then
+					log('doing primitive link')
 					hit_unit:link(parent_obj:name(), self._unit, self._unit:orientation_object():name())
 				else
 					local parent_pos = parent_obj:position()
@@ -337,6 +324,7 @@ function ArrowBase:_attach_to_hit_unit(is_remote, dynamic_pickup_wanted)
 
 	if parent_obj then
 		hit_unit:link(parent_obj:name(), self._unit)
+		log('attaching by parent obj', tostring(parent_obj))
 	else
 		print("ArrowBase:_attach_to_hit_unit(): No parent object!!")
 	end
@@ -358,15 +346,25 @@ function ArrowBase:_attach_to_hit_unit(is_remote, dynamic_pickup_wanted)
 		self:_switch_to_pickup_delayed(switch_to_dynamic_pickup)
 	end
 
-	log("is parent body nil?", tostring(parent_body))
 	if alive(hit_unit) and parent_body then
 		self._attached_body_disabled_cbk_data = {
 			cbk = callback(self, self, "_cbk_attached_body_disabled"),
 			unit = hit_unit,
 			body = parent_body
 		}
-		log("adding a body disable clbk!", tostring(hit_unit:key()))
+
 		hit_unit:add_body_enabled_callback(self._attached_body_disabled_cbk_data.cbk)
+	end
+	local pin_data = managers.projectile:pin_data_by_arrow(self._unit:key()) or {}
+
+	if alive(pin_data.attached_unit) and alive(pin_data.attached_body) then
+		self._attached_body_disabled_cbk_data = {
+			cbk = callback(self, self, "_cbk_attached_body_disabled"),
+			unit = pin_data.attached_unit,
+			body = pin_data.attached_body
+		}
+		log("adding a body disable clbk!", tostring(hit_unit:key()))
+		pin_data.attached_unit:add_body_enabled_callback(self._attached_body_disabled_cbk_data.cbk)
 	end
 
 	if not is_remote then
