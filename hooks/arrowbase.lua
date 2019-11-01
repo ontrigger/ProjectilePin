@@ -1,5 +1,4 @@
 local mvec1 = Vector3()
-local mvec2 = Vector3()
 local mrot1 = Rotation()
 
 local PROJECTILES_ArrowBase_update = ArrowBase.update
@@ -120,7 +119,6 @@ function ArrowBase:destroy(unit)
 
 	self._destroy_listener_id = nil
 
-	log("DESTROY CALLED", tostring(managers.projectile:pin_data_by_arrow(unit:key())))
 	self:_unfreeze_pin_unit(managers.projectile:pin_data_by_arrow(unit:key()))
 
 	self._pin_data = nil
@@ -131,7 +129,7 @@ function ArrowBase:destroy(unit)
 	ArrowBase.super.destroy(self, unit)
 end
 
-Hooks:PostHook(ArrowBase, "clbk_hit_unit_destroyed", "ProjectilePinclbk_hit_unit_destroyed", function(self, unit)
+Hooks:PostHook(ArrowBase, "clbk_hit_unit_destroyed", "ProjectilePinclbk_hit_unit_destroyed", function(_, unit)
 	local pin_data = managers.projectile:pin_data(unit:key())
 	if pin_data then
 		World:stop_physic_effect(pin_data.phys_effect)
@@ -166,23 +164,28 @@ function ArrowBase:_cbk_attached_body_disabled(unit, body)
 		local all_pin_data = managers.projectile:all_pin_data_for_attached(unit:key())
 		for key, data in pairs(all_pin_data) do
 			self:_unfreeze_pin_unit(data)
-			if alive(data.body) then
+			if alive(data.body) and alive(data.arrow_unit) then
 				self:_reattach_arrow_to_body(data)
 			end
 			managers.projectile:remove_pin_data(key)
 		end
 		self:_remove_attached_body_disabled_cbk()
 
-		if not self._is_dynamic_pickup then
+		local has_pinned_unit = table.find_value(all_pin_data, function(pin_data)
+			return pin_data.arrow_unit:key() == self._unit:key()
+		end)
+
+		if not self._is_dynamic_pickup and not has_pinned_unit then
 			self:_switch_to_pickup(true)
 		end
 	end
 end
 
 function ArrowBase:_unfreeze_pin_unit(pin_data)
-	print_table(pin_data)
 	if pin_data and pin_data.freeze_listener_id and alive(pin_data.hit_unit) then
 		pin_data.hit_unit:character_damage():remove_listener(pin_data.freeze_listener_id)
+		-- i just got lazy, this fixes units freezing again if you time breaking the glass right
+		managers.enemy:remove_delayed_clbk("freeze_rag" .. tostring(pin_data.hit_unit:key()))
 
 		managers.projectile:unfreeze_pinned_ragdoll(pin_data.hit_unit:key())
 		managers.projectile:remove_pinned_unit(pin_data.hit_unit:key())
@@ -209,11 +212,11 @@ end
 function ArrowBase:_reattach_arrow_to_body(pin_data)
 	mrotation.set_look_at(mrot1, pin_data.ray.velocity, math.UP)
 
-	self._unit:set_position(pin_data.ray.position)
-	self._unit:set_position(pin_data.ray.position)
-	self._unit:set_rotation(mrot1)
+	pin_data.arrow_unit:set_position(pin_data.ray.position)
+	pin_data.arrow_unit:set_position(pin_data.ray.position)
+	pin_data.arrow_unit:set_rotation(mrot1)
 
-	pin_data.hit_unit:link(pin_data.body:root_object():name(), self._unit)
+	pin_data.hit_unit:link(pin_data.body:root_object():name(), pin_data.arrow_unit)
 	self._already_attached = true
 end
 
@@ -253,7 +256,6 @@ function ArrowBase:_attach_to_hit_unit(is_remote, dynamic_pickup_wanted)
 
 			if parent_obj then
 				if not child_obj then
-					log('doing primitive link')
 					hit_unit:link(parent_obj:name(), self._unit, self._unit:orientation_object():name())
 				else
 					local parent_pos = parent_obj:position()
@@ -324,7 +326,6 @@ function ArrowBase:_attach_to_hit_unit(is_remote, dynamic_pickup_wanted)
 
 	if parent_obj then
 		hit_unit:link(parent_obj:name(), self._unit)
-		log('attaching by parent obj', tostring(parent_obj))
 	else
 		print("ArrowBase:_attach_to_hit_unit(): No parent object!!")
 	end
@@ -363,7 +364,7 @@ function ArrowBase:_attach_to_hit_unit(is_remote, dynamic_pickup_wanted)
 			unit = pin_data.attached_unit,
 			body = pin_data.attached_body
 		}
-		log("adding a body disable clbk!", tostring(hit_unit:key()))
+
 		pin_data.attached_unit:add_body_enabled_callback(self._attached_body_disabled_cbk_data.cbk)
 	end
 

@@ -79,7 +79,7 @@ end
 
 function ProjectileManager:pin_data_by_arrow(arrow_key)
 	local pin_data
-	for k, data in pairs(self._pin_data) do
+	for _, data in pairs(self._pin_data) do
 		if data.arrow_unit:key() == arrow_key then
 			pin_data = data
 			break
@@ -91,7 +91,7 @@ end
 
 function ProjectileManager:all_pin_data_for_attached(attached_key)
 	local all_pin_data = {}
-	for k, data in pairs(self._pin_data) do
+	for _, data in pairs(self._pin_data) do
 		if data.attached_unit:key() == attached_key then
 			table.insert(all_pin_data, data)
 		end
@@ -147,6 +147,7 @@ function ProjectileManager:on_ragdoll_frozen(rag_key)
 
 
 	if ragdoll then
+		log("called from there")
 		self:unfreeze_pinned_ragdoll(rag_key)
 	end
 end
@@ -179,11 +180,11 @@ function ProjectileManager:unfreeze_pinned_ragdoll(rag_key)
 	local ragdoll = self._pinned_units[rag_key]
 	
 	if ragdoll and alive(ragdoll) then
-		log("unfreezing", tostring(ragdoll))
+		log("unfreezing", tostring(ragdoll:key()))
 		ragdoll:damage():run_sequence_simple("switch_to_ragdoll")
 
 		managers.enemy:add_delayed_clbk(
-			"freeze_rag" .. tostring(rag_key) , 
+			"freeze_rag" .. tostring(rag_key),
 			ClassClbk(ragdoll:movement()._active_actions[1], "clbk_chk_freeze_ragdoll"), 
 			TimerManager:game():time() + 3
 		)
