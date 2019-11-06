@@ -92,7 +92,6 @@ function ArrowBase:_on_collision(col_ray)
                 attached_unit = pin_ray.unit,
                 attached_body = pin_ray.body,
                 hit_unit = hit_unit,
-                arrow_unit = self._unit,
                 body = impact_body,
                 ray = pin_ray,
                 phys_effect = phys_effect,
@@ -100,9 +99,7 @@ function ArrowBase:_on_collision(col_ray)
             }
             self._pin_data = pin_data
 
-            managers.projectile:add_pin_data(hit_unit:key(), pin_data)
-
-            if managers.network:session() then
+            if managers.network:session() and false then
                 managers.network:session():send_to_peers_synched("sync_start_body_pin", nil, "sync_ragdoll_pin")
             end
         end
@@ -141,13 +138,13 @@ function ArrowBase:destroy(unit)
     ArrowBase.super.destroy(self, unit)
 end
 
-Hooks:PostHook(ArrowBase, "clbk_hit_unit_destroyed", "ProjectilePinclbk_hit_unit_destroyed", function(_, unit)
-    local pin_data = managers.projectile:pin_data(unit:key())
-    if pin_data then
-        World:stop_physic_effect(pin_data.phys_effect)
+Hooks:PostHook(ArrowBase, "clbk_hit_unit_destroyed", "ProjectilePinclbk_hit_unit_destroyed", function(self, unit)
+    if self._pin_data then
+        World:stop_physic_effect(self._pin_data.phys_effect)
 
         managers.projectile:remove_pinned_unit(unit)
-        managers.projectile:remove_pin_data(unit:key())
+
+        self._pin_data = nil
     end
 end)
 
@@ -173,13 +170,9 @@ function ArrowBase:_cbk_attached_body_disabled(unit, body)
     end
 
     if not body:enabled() then
-		self:_unfreeze_pinned_unit()
-		if self._pin_data then
-            if alive(self._pin_data.body) then
-                self:_reattach_arrow_to_body(self._pin_data.body)
-            end
-
-            managers.projectile:remove_pin_data(self._pin_data.hit_unit:key())
+        self:_unfreeze_pinned_unit()
+        if self._pin_data and alive(self._pin_data.body) then
+            self:_reattach_arrow_to_body()
         end
 
         self:_remove_attached_body_disabled_cbk()
@@ -199,8 +192,8 @@ function ArrowBase:_unfreeze_pinned_unit()
         return
     end
 
-	self._pin_data.hit_unit:character_damage()
-            :remove_listener(self._pin_data.freeze_listener_id)
+    self._pin_data.hit_unit:character_damage()
+        :remove_listener(self._pin_data.freeze_listener_id)
     -- i just got lazy, this fixes units freezing again if you time breaking the glass right
     managers.enemy:remove_delayed_clbk("freeze_rag" .. tostring(self._pin_data.hit_unit:key()))
 
@@ -228,11 +221,10 @@ end
 function ArrowBase:_reattach_arrow_to_body()
     mrotation.set_look_at(mrot1, self._pin_data.ray.velocity, math.UP)
 
-    local arrow_unit = self._pin_data.arrow_unit
-    arrow_unit:set_position(self._pin_data.ray.position)
-    arrow_unit:set_position(self._pin_data.ray.position)
-    arrow_unit:set_rotation(mrot1)
+    self._unit:set_position(self._pin_data.ray.position)
+    self._unit:set_position(self._pin_data.ray.position)
+    self._unit:set_rotation(mrot1)
 
-    self._pin_data.hit_unit:link(self._pin_data.body:root_object():name(), arrow_unit)
+    self._pin_data.hit_unit:link(self._pin_data.body:root_object():name(), self._unit)
     self._already_attached = true
 end

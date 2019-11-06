@@ -57,50 +57,13 @@ function ProjectileManager:add_pinned_unit(unit)
     self._pinned_units[unit:key()] = unit
 end
 
-function ProjectileManager:is_unit_pinned(unit) 
-    return self._pinned_units[unit:key()] and true or false
+function ProjectileManager:is_unit_pinned(unit_key)
+    return self._pinned_units[unit_key]
 end
 
 function ProjectileManager:remove_pinned_unit(unit_key)
     self._pinned_units[unit_key] = nil
 end
-
-function ProjectileManager:add_pin_data(unit_key, pin_data)
-	self._pin_data[unit_key] = pin_data
-end
-
-function ProjectileManager:remove_pin_data(unit_key)
-	self._pin_data[unit_key] = nil
-end
-
-function ProjectileManager:pin_data(unit_key)
-	return self._pin_data[unit_key]
-end
-
-function ProjectileManager:pin_data_by_arrow(arrow_key)
-	local pin_data
-	for _, data in pairs(self._pin_data) do
-		if data.arrow_unit:key() == arrow_key then
-			pin_data = data
-			break
-		end
-	end
-
-	return pin_data
-end
-
-function ProjectileManager:all_pin_data_for_attached(attached_key)
-	local all_pin_data = {}
-	for _, data in pairs(self._pin_data) do
-		if data.attached_unit:key() == attached_key then
-			table.insert(all_pin_data, data)
-		end
-	end
-
-	return all_pin_data
-end
-
-
 
 function ProjectileManager:get_impact_body(impact_pos, impact_unit) 
 	local obj = impact_unit:character_damage():get_impact_segment(impact_pos)
@@ -112,44 +75,6 @@ function ProjectileManager:get_impact_body(impact_pos, impact_unit)
 	end
 	
     return impact_unit:body(Idstring("rag_Head"))
-end
-
-function ProjectileManager:get_closest_bodies_to_body(orig_body)
-	local bodies = {}
-	local my_unit = orig_body:unit()
-
-	local nr_bodies = my_unit:num_bodies()
-	local i_body = 0
-
-	while nr_bodies > i_body do
-		local test_body = my_unit:body(i_body)
-
-		if test_body:name() ~= orig_body:name() and not self:_chk_body_blacklisted(test_body) then
-			
-			table.insert(bodies, {
-				body = test_body, 
-				dist = mvector3.distance(test_body:center_of_mass(), orig_body:center_of_mass())
-			})
-		end
-
-		i_body = i_body + 1
-	end
-
-	table.sort(bodies, function(left, right)
-		return left.dist < right.dist
-	end)
-
-	return bodies
-end
-
-function ProjectileManager:on_ragdoll_frozen(rag_key)
-	local ragdoll = self._pinned_units[rag_key]
-
-
-	if ragdoll then
-		log("called from there")
-		self:unfreeze_pinned_ragdoll(rag_key)
-	end
 end
 
 function ProjectileManager:can_pin_unit(unit)
@@ -180,7 +105,6 @@ function ProjectileManager:unfreeze_pinned_ragdoll(rag_key)
 	local ragdoll = self._pinned_units[rag_key]
 	
 	if ragdoll and alive(ragdoll) then
-		log("unfreezing", tostring(ragdoll:key()))
 		ragdoll:damage():run_sequence_simple("switch_to_ragdoll")
 
 		managers.enemy:add_delayed_clbk(
