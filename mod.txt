@@ -1,7 +1,7 @@
 {
-	"name" : "test_mod",
-	"description" : "test mod dewc",
+	"name" : "projectile_pin",
+	"description" : "projectile_pin_desc",
 	"author" : "ontrigger",
-	"contact" : "YOUR_CONTACT_DETAILS",
-	"version" : "MOD_VERSION"
+	"contact" : "ontrigger#7187",
+	"version" : "r1"
 }

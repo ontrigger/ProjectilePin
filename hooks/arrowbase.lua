@@ -1,7 +1,7 @@
 local mvec1 = Vector3()
 local mrot1 = Rotation()
 
-local PROJECTILES_ArrowBase_update = ArrowBase.update
+local ProjectilePin_ArrowBase_update = ArrowBase.update
 
 function ArrowBase:update(unit, t, dt)
     if self._pin_data and alive(self._pin_data.body) and not self._already_attached then
@@ -10,7 +10,7 @@ function ArrowBase:update(unit, t, dt)
         end
     end
 
-    PROJECTILES_ArrowBase_update(self, unit, t, dt)
+    ProjectilePin_ArrowBase_update(self, unit, t, dt)
 end
 
 function ArrowBase:_on_collision(col_ray)
@@ -39,6 +39,7 @@ function ArrowBase:_on_collision(col_ray)
     if managers.projectile:can_pin_unit(hit_unit) and not managers.projectile:is_unit_pinned(hit_unit) then
         -- needed because there are body and head bodies blocking everything
         local impact_body = managers.projectile:get_impact_body(col_ray.position, hit_unit)
+
         local raycast_dist = ProjectilePin.tweak:raycast_dist_from_body(impact_body)
 
         mvector3.set(mvec1, self._unit:rotation():y())
@@ -47,7 +48,7 @@ function ArrowBase:_on_collision(col_ray)
 
         local pin_ray = World:raycast("ray", col_ray.position, mvec1, "ignore_unit", hit_unit, "slot_mask", managers.projectile:pin_mask())
 
-        Draw:brush(Color(0.5, 1, 0, 0), nil, 10):line(col_ray.position, mvec1)
+        --Draw:brush(Color(0.5, 1, 0, 0), nil, 10):line(col_ray.position, mvec1)
 
         if pin_ray and alive(pin_ray.unit) then
             -- dont push if there is a non-static unit in the way
@@ -63,14 +64,14 @@ function ArrowBase:_on_collision(col_ray)
             managers.projectile:add_pinned_unit(hit_unit)
 
             local physic_effect_name = "physic_effects/shotgun_wat"
-            Draw:brush(Color(0.5, 1, 0, 1), nil, 10):line(col_ray.position, pin_ray.position)
-            Draw:brush(Color(0.5, 0, 0, 1), nil, 10):sphere(pin_ray.position + (pin_ray.normal * 10), 10)
+            --Draw:brush(Color(0.5, 1, 0, 1), nil, 10):line(col_ray.position, pin_ray.position)
+            --Draw:brush(Color(0.5, 0, 0, 1), nil, 10):sphere(pin_ray.position + (pin_ray.normal * 10), 10)
 
             local phys_effect = World:play_physic_effect(
                 Idstring(physic_effect_name),
                 impact_body,
                 pin_ray.position + (pin_ray.normal * 10),
-                hit_unit:mass() * 2
+                hit_unit:mass() * 3
             )
 
             local freeze_listener_id = "on_rag_frozen" .. tostring(hit_unit:key())
@@ -109,8 +110,6 @@ end
 
 function ArrowBase:destroy(unit)
     self:_check_stop_flyby_sound()
-
-    log("destroy", tostring(unit:key()), tostring(self._unit:key()))
 
     if self._owner_peer_id and ArrowBase._arrow_units[self._owner_peer_id] then
         ArrowBase._arrow_units[self._owner_peer_id][self._unit:key()] = nil

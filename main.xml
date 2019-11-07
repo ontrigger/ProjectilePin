@@ -1,18 +1,22 @@
 <mod name="ProjectilePin" global_key="ProjectilePin" core_class="Core.lua">
+    <AssetUpdates id="25927"
+                  version="r1"
+                  provider="modworkshop"
+				  important="true"/>
     <Classes directory="classes">
         <class file="projectilemanager.lua"/>
         <class file="projectilepintweakdata.lua"/>
     </Classes>
     <Hooks directory="hooks">
         <hook file="arrowbase.lua" source_file="lib/units/weapons/projectiles/arrowbase"/>
-		<hook file="gamesetup.lua" source_file="lib/setups/gamesetup"/>
-		<hook file="tweakdata.lua" source_file="lib/tweak_data/tweakdata"/>
-		<hook file="copactionhurt.lua" source_file="lib/units/enemies/cop/actions/full_body/copactionhurt"/>
-		<hook file="unitnetworkhandler.lua" source_file="lib/network/handlers/unitnetworkhandler"/>
+        <hook file="gamesetup.lua" source_file="lib/setups/gamesetup"/>
+        <hook file="tweakdata.lua" source_file="lib/tweak_data/tweakdata"/>
+        <hook file="copactionhurt.lua" source_file="lib/units/enemies/cop/actions/full_body/copactionhurt"/>
+        <hook file="unitnetworkhandler.lua" source_file="lib/network/handlers/unitnetworkhandler"/>
     </Hooks>
-	<AddFiles directory="assets">
-		<add unload_on_restart="true">
-			<physic_effect path="physic_effects/shotgun_wat" reload="true"/>
-		</add>
-	</AddFiles>
+    <AddFiles directory="assets">
+        <add unload_on_restart="true">
+            <physic_effect path="physic_effects/shotgun_wat" reload="true"/>
+        </add>
+    </AddFiles>
 </mod>

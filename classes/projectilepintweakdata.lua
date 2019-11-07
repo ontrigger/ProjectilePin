@@ -2,23 +2,27 @@ ProjectilePinTweakData = ProjectilePinTweakData or class()
 
 ProjectilePinTweakData.DEFAULT_RAYCAST_DIST = 600
 function ProjectilePinTweakData:init(tweak_data)
-    log('[ProjectilePinTweakData]')
     self._body_pin_raycast_dist = {
-        ["rag_Spine"] = 400,
-        ["rag_Spine1"] = 400,
-        ["rag_Spine2"] = 400,
-        ["rag_LeftForeArm"] = 250,
-        ["rag_RightForeArm"] = 250,
-        ["rag_LeftArm"] = 200,
-        ["rag_RightArm"] = 200,
-        ["rag_LeftUpLeg"] = 250,
-        ["rag_RightUpLeg"] = 250,
-        ["rag_LeftLeg"] = 200,
-        ["rag_RightLeg"] = 200,
-        ["rag_Hips"] = 300,
+        [Idstring("rag_Spine")] = 600,
+        [Idstring("rag_Head")] = 1600,
+        [Idstring("rag_Spine1")] = 600,
+        [Idstring("rag_Spine2")] = 600,
+        [Idstring("rag_LeftForeArm")] = 450,
+        [Idstring("rag_RightForeArm")] = 450,
+        [Idstring("rag_LeftArm")] = 450,
+        [Idstring("rag_RightArm")] = 450,
+        [Idstring("rag_LeftUpLeg")] = 350,
+        [Idstring("rag_RightUpLeg")] = 350,
+        [Idstring("rag_LeftLeg")] = 250,
+        [Idstring("rag_RightLeg")] = 250,
+        [Idstring("rag_Hips")] = 600,
+    }
+
+    self._blacklisted_bodies = {
+
     }
 end
 
-function ProjectilePinTweakData:raycast_dist_from_body(body_name)
-    return self._body_pin_raycast_dist[body_name] or self.DEFAULT_RAYCAST_DIST
+function ProjectilePinTweakData:raycast_dist_from_body(body)
+    return self._body_pin_raycast_dist[body:name()] or self.DEFAULT_RAYCAST_DIST
 end
